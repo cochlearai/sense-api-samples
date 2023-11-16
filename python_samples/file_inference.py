@@ -13,11 +13,12 @@ from cochl_sense_api.model.window_hop import WindowHop
 from result_abbreviation import ResultAbbreviation
 
 ###############################################################################
+# Audio Session Params
 PROJECT_KEY = "YOUR_API_PROJECT_KEY"
 FILE_PATH = os.path.dirname(__file__) + "/../audio_files/siren.wav"
 REQUEST_TIMEOUT = 10  # seconds
 HOP_SIZE = WindowHop("500ms")  # default; or "1s"
-DEFAULT_SENSITIVITY = DefaultSensitivity(0)  # default; or [-2,2]
+DEFAULT_SENSITIVITY = DefaultSensitivity(0)  # default; or in [-2,2]
 TAGS_SENSITIVITY = TagsSensitivity(Sing=1)  # example; will alter the results
 
 # Result Abbreviation

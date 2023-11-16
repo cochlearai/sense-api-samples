@@ -13,7 +13,7 @@ from cochl_sense_api.model.window_hop import WindowHop
 from result_abbreviation import ResultAbbreviation
 
 ###############################################################################
-PROJECT_KEY = "API_PROJECT_KEY"
+PROJECT_KEY = "YOUR_API_PROJECT_KEY"
 FILE_PATH = os.path.dirname(__file__) + "/../audio_files/siren.wav"
 REQUEST_TIMEOUT = 10  # seconds
 HOP_SIZE = WindowHop("500ms")  # default; or "1s"

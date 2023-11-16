@@ -5,7 +5,7 @@ const { readFileSync } = require("fs")
 ////////////////////////////////////////////////////////////////////////////////////
 
 // Audio Session Params
-const API_KEY = "YOUR_API_KEY"
+const API_KEY = "YOUR_API_PROJECT_KEY"
 const FILE_PATH = "siren.wav"
 const HOP_SIZE = 0.5
 const DEFAULT_SENSITIVITY = 0

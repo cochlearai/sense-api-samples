@@ -16,7 +16,7 @@ from result_abbreviation import ResultAbbreviation
 
 ###############################################################################
 # Audio Session Params
-PROJECT_KEY = "API_PROJECT_KEY"
+PROJECT_KEY = "YOUR_API_PROJECT_KEY"
 REQUEST_TIMEOUT = 10  # seconds
 HOP_SIZE = WindowHop("500ms")  # default; or "1s"
 DEFAULT_SENSITIVITY = DefaultSensitivity(0)  # default; or in [-2,2]

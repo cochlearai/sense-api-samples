@@ -5,7 +5,7 @@ const mic = require('mic');
 ////////////////////////////////////////////////////////////////////////////////////
 
 // Audio Session Params
-const API_KEY = "YOUR_API_KEY"
+const API_KEY = "YOUR_API_PROJECT_KEY"
 const HOP_SIZE = 0.5
 const DEFAULT_SENSIBILITY = 0
 const TAGS_SENSITIVITY = { }

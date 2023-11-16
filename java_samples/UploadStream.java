@@ -46,7 +46,7 @@ import ai.cochl.client.Configuration;
 import ai.cochl.client.auth.ApiKeyAuth;
 
 public class MainActivity extends AppCompatActivity {
-    static String key = "YOUR_API_KEY";
+    static String key = "YOUR_PROJECT_KEY";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

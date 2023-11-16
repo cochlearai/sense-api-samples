@@ -18,7 +18,7 @@ import javax.sound.sampled.*;
 import javax.swing.*;
 
 public class UploadFile {
-    static String key = "YOUR_API_KEY";
+    static String key = "YOUR_PROJECT_KEY";
 
     // example 01: upload existing file
     static String existingFilename = "siren.wav";

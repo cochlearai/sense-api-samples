@@ -79,7 +79,7 @@ class PyAudioSense:
 
 def main():
     # configuration = Configuration()
-    configuration = Configuration(host="https://api.beta.cochl.ai/sense/api/v1")
+    configuration = Configuration()
     configuration.api_key["API_Key"] = PROJECT_KEY
     api = AudioSessionApi(ApiClient(configuration))
 

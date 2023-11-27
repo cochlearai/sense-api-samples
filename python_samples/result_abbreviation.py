@@ -1,5 +1,4 @@
-HALF_SECOND = 0.5  # default
-ONE_SECOND = 1
+from cochl_sense_api.model.window_hop import WindowHop
 
 
 class ResultAbbreviation:
@@ -7,13 +6,15 @@ class ResultAbbreviation:
         self,
         enabled=True,
         default_im=0,
-        hop_size=HALF_SECOND,
+        hop_size=WindowHop("0.5s"),
         tags_im: dict[str, int] = None,
     ):
         self.enabled = enabled
-        if hop_size != HALF_SECOND and hop_size != ONE_SECOND:
+        if hop_size != WindowHop("0.5s") and hop_size != WindowHop("1s"):
             raise ValueError("Hop size can only be 0.5 or 1")
-        self.hop_size = hop_size
+        self.hop_size = 0.5
+        if hop_size == WindowHop("1s"):
+            self.hop_size = 1
         self.default_im = default_im
         self.tags_im = tags_im
         self._buffer = {}

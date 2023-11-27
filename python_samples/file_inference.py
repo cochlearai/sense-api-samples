@@ -1,6 +1,7 @@
 import base64
 import os
 import traceback
+import json
 
 from cochl_sense_api import ApiClient, Configuration
 from cochl_sense_api.api.audio_session_api import AudioSessionApi
@@ -17,9 +18,9 @@ from result_abbreviation import ResultAbbreviation
 PROJECT_KEY = "YOUR_API_PROJECT_KEY"
 FILE_PATH = os.path.dirname(__file__) + "/../audio_files/siren.wav"
 REQUEST_TIMEOUT = 10  # seconds
-HOP_SIZE = WindowHop("500ms")  # default; or "1s"
+HOP_SIZE = WindowHop("0.5s")  # default; or "1s"
 DEFAULT_SENSITIVITY = DefaultSensitivity(0)  # default; or in [-2,2]
-TAGS_SENSITIVITY = TagsSensitivity(Sing=1)  # example; will alter the results
+TAGS_SENSITIVITY = TagsSensitivity(Crowd=2, Sing=1)  # example; will alter the results
 
 # Result Abbreviation
 RESULT_ABBREVIATION = True
@@ -69,7 +70,9 @@ if __name__ == "__main__":
         next_token = ""
         i = 0
         file_ended = False
-        result_abbreviation = ResultAbbreviation(default_im=DEFAULT_IM, tags_im=TAGS_IM)
+        result_abbreviation = ResultAbbreviation(
+            default_im=DEFAULT_IM, tags_im=TAGS_IM, hop_size=HOP_SIZE
+        )
 
         while True:
             resp = api.read_status(
@@ -98,7 +101,7 @@ if __name__ == "__main__":
 
             else:
                 for result in resp.inference.results:
-                    print(result)
+                    print(json.dumps(result.to_dict()))
 
             if file_ended:
                 break

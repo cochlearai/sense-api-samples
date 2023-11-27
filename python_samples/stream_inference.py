@@ -2,6 +2,7 @@ import base64
 import queue
 import threading
 import traceback
+import json
 
 from cochl_sense_api import ApiClient, Configuration
 from cochl_sense_api.api.audio_session_api import AudioSessionApi
@@ -18,14 +19,12 @@ from result_abbreviation import ResultAbbreviation
 # Audio Session Params
 PROJECT_KEY = "YOUR_API_PROJECT_KEY"
 REQUEST_TIMEOUT = 10  # seconds
-HOP_SIZE = WindowHop("500ms")  # default; or "1s"
+HOP_SIZE = WindowHop("0.5s")  # default; or "1s"
 DEFAULT_SENSITIVITY = DefaultSensitivity(0)  # default; or in [-2,2]
-TAGS_SENSITIVITY = TagsSensitivity(Sing=1)  # example; will alter the results
+TAGS_SENSITIVITY = TagsSensitivity(Crowd=2, Sing=1)  # example; will alter the results
 
 # Result Abbreviation
 RESULT_ABBREVIATION = True
-DEFAULT_IM = 1
-TAGS_IM = {}  # example {"Male_speech": 1}
 ###############################################################################
 
 
@@ -85,6 +84,7 @@ def main():
 
     session = api.create_session(
         CreateSession(
+            window_hop=HOP_SIZE,
             content_type="audio/x-raw; rate=22050; format=f32",
             type=AudioType("stream"),
         )
@@ -98,7 +98,7 @@ def main():
         streamer_thread.start()
 
         # get results
-        result_abbreviation = ResultAbbreviation()
+        result_abbreviation = ResultAbbreviation(hop_size=HOP_SIZE)
         next_token = ""
         while True:
             resp = api.read_status(
@@ -112,8 +112,7 @@ def main():
                     print(f"{summary if summary else '...'}")
                 else:
                     for result in resp.inference.results:
-                        print(result)
-
+                        print(json.dumps(result.to_dict()))
             next_token = resp.inference.page.get("next_token")
             if not next_token:
                 break

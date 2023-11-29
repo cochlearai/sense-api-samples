@@ -1,4 +1,9 @@
+import sys
+
 from cochl_sense_api.model.window_hop import WindowHop
+
+if sys.version_info.minor == 8:  # python3.8
+    from typing import Dict as dict
 
 
 class ResultAbbreviation:
@@ -20,6 +25,9 @@ class ResultAbbreviation:
         self._buffer = {}
         self._file_mode = False
         self._tag_name_other = "Others"
+        self._min_im = 0
+        if default_im == 0 and self.hop_size == 0.5:
+            self._min_im = -0.5
 
     def minimize_details(self, results=[], file_ended=False):
         """
@@ -79,7 +87,7 @@ class ResultAbbreviation:
                 continue
 
             im -= self.hop_size
-            if im < 0:
+            if im < self._min_im:
                 line = f"At {from_time}-{to_time}s, {tag} was detected"
                 nb_line += 1
                 output = self._append_line(output, line)

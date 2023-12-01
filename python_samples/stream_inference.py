@@ -77,7 +77,6 @@ class PyAudioSense:
 
 
 def main():
-    # configuration = Configuration()
     configuration = Configuration()
     configuration.api_key["API_Key"] = PROJECT_KEY
     api = AudioSessionApi(ApiClient(configuration))
@@ -87,6 +86,8 @@ def main():
             window_hop=HOP_SIZE,
             content_type="audio/x-raw; rate=22050; format=f32",
             type=AudioType("stream"),
+            default_sensitivity=DEFAULT_SENSITIVITY,
+            tags_sensitivity=TAGS_SENSITIVITY,
         )
     )
     session_id = session.session_id

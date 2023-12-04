@@ -6,9 +6,9 @@ const mic = require('mic');
 
 // Audio Session Params
 const API_KEY = "YOUR_API_PROJECT_KEY"
-const HOP_SIZE = 0.5
-const DEFAULT_SENSIBILITY = 0
-const TAGS_SENSITIVITY = { }
+const HOP_SIZE = 0.5                            // default; or "1s"
+const DEFAULT_SENSITIVITY = 0                   // default; or in [-2,2]
+const TAGS_SENSITIVITY = { Crowd:1, Sing: 2 }   // example; will alter the results
 
 // Result Abbreviation
 const RESULT_ABBREVIATION = true
@@ -23,9 +23,9 @@ const session = new AudioSessionApi(conf)
 
 async function init(){
     const created = await session.createSession({
-        default_sensitivity: DEFAULT_SENSIBILITY,
+        default_sensitivity: DEFAULT_SENSITIVITY,
         tags_sensitivity: TAGS_SENSITIVITY,
-        window_hop: HOP_SIZE == 0.5 ? WindowHop._500ms : WindowHop._1s,
+        window_hop: HOP_SIZE == 0.5 ? WindowHop._05s : WindowHop._1s,
         content_type: "audio/x-raw; rate=22050; format=s16",
         type: AudioType.Stream,
     })

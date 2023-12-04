@@ -1,8 +1,6 @@
 // Result Abbreviation params
-const DEFAULT_IM = 1
-const TAGS_IM = {
-    Male_speech: 1
-}
+const DEFAULT_IM = 0
+const TAGS_IM = { } // example {Male_speech: 1}
 
 function formatTimeDisplay(time) {
     return Number.isInteger(time) ? time.toFixed(1) : time
@@ -17,6 +15,7 @@ function displayBufferedResults(resultsBuffered) {
 
 function processBufferedTags(inferenceMode, hopSize, result, resultsBuffered) {
     const tagsIMEnded = []
+    const minimumIM = hopSize == 0.5 && DEFAULT_IM == 0 ? -0.5 : 0
     resultsBuffered.forEach((tagSaved, ridx) => {
         const tagDetectedIdx = result.tags.findIndex(tagDetected => tagDetected.name === tagSaved.tag_name);
         if (inferenceMode == "file") {
@@ -27,7 +26,7 @@ function processBufferedTags(inferenceMode, hopSize, result, resultsBuffered) {
                 resultsBuffered[ridx].end_time = result.end_time
                 resultsBuffered[ridx].im = DEFAULT_IM
             }
-            if (resultsBuffered[ridx].im < 0) {
+            if (resultsBuffered[ridx].im < minimumIM) {
                 tagsIMEnded.push({ id: ridx, ...resultsBuffered[ridx] })
             }
         } else {

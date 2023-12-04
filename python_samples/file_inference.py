@@ -24,7 +24,7 @@ TAGS_SENSITIVITY = TagsSensitivity(Crowd=2, Sing=1)  # example; will alter the r
 
 # Result Abbreviation
 RESULT_ABBREVIATION = True
-DEFAULT_IM = 1
+DEFAULT_IM = 0
 TAGS_IM = {}  # example {"Male_speech": 1}
 ###############################################################################
 

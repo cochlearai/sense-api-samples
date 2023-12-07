@@ -1,96 +1,161 @@
 package ai.cochlear.example;
 
 import ai.cochl.sense.model.SenseEvent;
-import ai.cochl.sense.model.SenseEventTag;
+import ai.cochl.sense.model.WindowHop;
 
 import java.util.*;
 
 class ResultAbbreviation {
-    private final boolean enable;
-    private final int defaultIntervalMargin;
-    private final HashMap<String, Integer> intervalMargin;
-    private final double hopSize;
+    static class BufferValue {
+        private final double intervalMargin;
+        private final double startTime;
+        private final double endTime;
 
-    private final TreeMap<String, UploadFile.PairOfDoubles> buffer = new TreeMap<>();
-    private final StringBuilder stringBuilder = new StringBuilder();
+        BufferValue(double im, double startTime, double endTime) {
+            this.intervalMargin = im;
+            this.startTime = startTime;
+            this.endTime = endTime;
+        }
 
-    public ResultAbbreviation(boolean enable, int defaultIntervalMargin, HashMap<String, Integer> intervalMargin, double hopSize) {
-        this.enable = enable;
-        this.defaultIntervalMargin = defaultIntervalMargin;
-        this.intervalMargin = intervalMargin;
-        this.hopSize = hopSize;
+        public double getIntervalMargin() {
+            return intervalMargin;
+        }
 
-        if (enable) {
-            System.out.println("\tDefault Interval Margin (IM): " + defaultIntervalMargin);
+        public double getStartTime() {
+            return startTime;
+        }
 
-            if (!intervalMargin.isEmpty()) {
-                System.out.println("\tIM:");
-            }
-
-            for (Map.Entry<String, Integer> entrySet : intervalMargin.entrySet()) {
-                System.out.println("\t\t[" + entrySet.getKey() + "]: " + entrySet.getValue());
-            }
+        public double getEndTime() {
+            return endTime;
         }
     }
 
-    String abbreviation(SenseEvent frameResult) {
-        if (!enable) {
-            return "Result Abbreviation is currently disabled.";
+    static String _kTagNameOther = "Others";
+
+    private final boolean enabled;
+    private final float hopSize;
+    private final int defaultIntervalMargin;
+    private final HashMap<String, Integer> tagsIM;
+
+    private final TreeMap<String, BufferValue> buffer;
+    private double minimumAcceptableMargin;
+
+    private final StringBuilder stringBuilder1 = new StringBuilder();
+    private final StringBuilder stringBuilder2 = new StringBuilder();
+
+    public ResultAbbreviation(boolean enabled, int defaultIntervalMargin, WindowHop windowHop, HashMap<String, Integer> tagsIM) {
+        this.enabled = enabled;
+        this.defaultIntervalMargin = defaultIntervalMargin;
+
+        if (windowHop == WindowHop._0_5S) {
+            this.hopSize = 0.5f;
+        } else if (windowHop == WindowHop._1S) {
+            this.hopSize = 1.0f;
+        } else {
+            throw new IllegalArgumentException("Hop size can only be 0.5 or 1");
         }
 
-        double startTime = frameResult.getStartTime();
-        for (int i = 0; i < frameResult.getTags().size(); ++i) {
-            SenseEventTag tag = frameResult.getTags().get(i);
-            String name = tag.getName();
+        this.tagsIM = tagsIM;
+        this.buffer = new TreeMap<>();
 
-            String _kTagNameOther = "Others";
-            if (Objects.equals(name, _kTagNameOther)) {
+        this.minimumAcceptableMargin = 0;
+        if (this.defaultIntervalMargin == 0 && this.hopSize == 0.5d) {
+            this.minimumAcceptableMargin = -0.5d;
+        }
+    }
+
+    String minimizeDetails(List<SenseEvent> results, boolean endOfFile) {
+        if (!enabled) {
+            return "Result Abbreviation is currently disabled";
+        }
+
+        stringBuilder1.setLength(0);
+
+        for (SenseEvent result : results) {
+            String line = minimizeDetailsFrame(result);
+            if (line.isEmpty()) {
                 continue;
             }
 
-            double holdTime = getIntervalMarginByTag(name);
-            if (!buffer.containsKey(name)) {
-                buffer.put(name, new UploadFile.PairOfDoubles(startTime, holdTime));
-            } else {
-                buffer.get(name).setSecond(holdTime);
+            stringBuilder1.append(line);
+        }
+
+        if (endOfFile) {
+            for (Map.Entry<String, BufferValue> entry : buffer.entrySet()) {
+                String tagName = entry.getKey();
+                double fromTime = entry.getValue().getStartTime();
+                double toTime = entry.getValue().getEndTime();
+
+                stringBuilder1.append(getLine(fromTime, toTime, tagName));
             }
         }
 
-
-        List<Map.Entry<String, UploadFile.PairOfDoubles>> bufferAsList = new ArrayList<>(buffer.entrySet());
-
-        stringBuilder.setLength(0);
-        for (int i = 0; i < bufferAsList.size(); ) {
-            Map.Entry<String, UploadFile.PairOfDoubles> entrySet = bufferAsList.get(i);
-            double holdTime = entrySet.getValue().getSecond();
-            holdTime = holdTime - hopSize;
-
-            if (holdTime < 0) {
-                String newName = entrySet.getKey();
-                double newImByTag = getIntervalMarginByTag(newName);
-
-                double newStartTime = entrySet.getValue().getFirst();
-                double newEndTime = frameResult.getEndTime() - newImByTag;
-
-                String newLine = line(newName, newStartTime, newEndTime);
-                stringBuilder.append("\n").append(newLine);
-            } else {
-                i++;
-            }
-        }
-        String output = stringBuilder.toString();
-
-        String _kEmpty = "...";
-        return output.isEmpty() ? _kEmpty : output;
+        return stringBuilder1.toString();
     }
 
-    double getIntervalMarginByTag(String tag) {
-        int tempIm = defaultIntervalMargin;
-        if (intervalMargin.containsKey(tag)) {
-            tempIm = intervalMargin.get(tag);
+    String minimizeDetailsFrame(SenseEvent senseEvent) {
+        if (!enabled) {
+            return "Result Abbreviation is currently disabled";
         }
 
-        return tempIm + (tempIm > 0 ? .0f : hopSize);
+        stringBuilder2.setLength(0);
+
+        double startTime = senseEvent.getStartTime();
+        double endTime = senseEvent.getEndTime();
+        ArrayList<String> treatedTags = new ArrayList<>();
+
+        for (int i = 0; i < senseEvent.getTags().size(); i++) {
+            String tagName = senseEvent.getTags().get(i).getName();
+
+            if (Objects.equals(tagName, _kTagNameOther)) {
+                continue;
+            }
+
+            double fromTime;
+            if (buffer.containsKey(tagName)) {
+                fromTime = buffer.get(tagName).getStartTime();
+                buffer.put(tagName, new BufferValue(getIntervalMarginByTag(tagName), fromTime, endTime));
+            } else {
+                buffer.put(tagName, new BufferValue(getIntervalMarginByTag(tagName), startTime, endTime));
+            }
+
+            treatedTags.add(tagName);
+        }
+
+        ArrayList<String> tagsToRemove = new ArrayList<>();
+        for (Map.Entry<String, BufferValue> entry : buffer.entrySet()) {
+            String tagName = entry.getKey();
+            if (treatedTags.contains(tagName)) {
+                continue;
+            }
+
+            double fromTime = entry.getValue().getStartTime();
+            double toTime = entry.getValue().getEndTime();
+
+            double im = entry.getValue().getIntervalMargin();
+            im -= hopSize;
+
+            if (im < minimumAcceptableMargin) {
+                stringBuilder2.append(getLine(fromTime, toTime, tagName));
+                tagsToRemove.add(tagName);
+            } else {
+                buffer.put(tagName, new BufferValue(im, fromTime, toTime));
+            }
+        }
+
+        for (String s : tagsToRemove) {
+            buffer.remove(s);
+        }
+
+        return stringBuilder2.toString();
+    }
+
+    int getIntervalMarginByTag(String tagName) {
+        if (tagsIM.containsKey(tagName)) {
+            return tagsIM.get(tagName);
+        }
+
+        return defaultIntervalMargin;
     }
 
     String getFormattedTime(double time) {
@@ -98,10 +163,10 @@ class ResultAbbreviation {
         return formattedTime.substring(0, formattedTime.indexOf('.') + 2);
     }
 
-    String line(String name, double startTime, double endTime) {
-        String from = getFormattedTime(startTime);
-        String to = getFormattedTime(endTime);
+    String getLine(double fromTime, double toTime, String tagName) {
+        String from = getFormattedTime(fromTime);
+        String to = getFormattedTime(toTime);
 
-        return "At " + from + "-" + to + "s, [" + name + "] was detected";
+        return "\nAt " + from + "-" + to + "s, [" + tagName + "] was detected";
     }
 }

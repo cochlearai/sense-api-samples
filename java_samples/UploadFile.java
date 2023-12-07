@@ -18,18 +18,20 @@ import javax.sound.sampled.*;
 import javax.swing.*;
 
 public class UploadFile {
-    static String key = "YOUR_API_PROJECT_KEY";
+    static String API_KEY = "YOUR_API_PROJECT_KEY";
+    static WindowHop HOPE_SIZE = WindowHop._0_5S;
+    static int DEFAULT_SENSITIVITY = 0;
+    static boolean USE_RESULT_ABBREVIATION = true;
 
     // example 01: upload existing file
-    static String existingFilename = "siren.wav";
-    static boolean useResultAbbreviation = false;
+    static String EXISTING_FILE_PATH = "siren.wav";
 
     // example 02: upload file recorded by java sound api (macOS / windows)
-    static boolean useRecorder = true;
-    static String recordedFilename = "recorded.wav";
+    static boolean USE_RECORDER = false;
+    static String RECORDED_FILE_PATH = "recorded.wav";
 
     public static void main(String[] args) {
-        if (useRecorder) {
+        if (USE_RECORDER) {
             new Recorder();
             return;
         }
@@ -45,51 +47,64 @@ public class UploadFile {
 
     static void inference() throws ApiException, java.io.IOException {
         String contentType = "audio/wav";
-        byte[] file = Files.readAllBytes(Paths.get(existingFilename));
+        byte[] fileBytes = Files.readAllBytes(Paths.get(EXISTING_FILE_PATH));
 
-        ApiClient cli = Configuration.getDefaultApiClient();
-        ApiKeyAuth API_Key = (ApiKeyAuth) cli.getAuthentication("API_Key");
-        API_Key.setApiKey(key);
+        ApiClient apiClient = Configuration.getDefaultApiClient();
+        ApiKeyAuth apiKeyAuth = (ApiKeyAuth) apiClient.getAuthentication("API_Key");
+        apiKeyAuth.setApiKey(API_KEY);
 
-        AudioSessionApi api = new AudioSessionApi(cli);
+        AudioSessionApi audioSessionApi = new AudioSessionApi(apiClient);
 
-        CreateSession create = new CreateSession();
-        create.setContentType(contentType);
-        create.setType(AudioType.FILE);
-        create.setTotalSize(file.length);
-        SessionRefs session = api.createSession(create);
+        CreateSession createSession = new CreateSession();
+        createSession.setDefaultSensitivity(DEFAULT_SENSITIVITY);
+        createSession.setTagsSensitivity(new HashMap<>());
+        createSession.setWindowHop(HOPE_SIZE);
+        createSession.setContentType(contentType);
+        createSession.setType(AudioType.FILE);
+        createSession.setTotalSize(fileBytes.length);
+
+        SessionRefs sessionRefs = audioSessionApi.createSession(createSession);
+        String sessionId = sessionRefs.getSessionId();
 
         //upload
         int chunkSize = 1024 * 1024;
-        for (int sequence = 0; sequence * chunkSize < file.length; sequence++) {
+        for (int sequence = 0; sequence * chunkSize < fileBytes.length; sequence++) {
             System.out.println("uploading..");
-            byte[] slice = Arrays.copyOfRange(file, sequence * chunkSize, (sequence + 1) * chunkSize);
+            byte[] slice = Arrays.copyOfRange(fileBytes, sequence * chunkSize, (sequence + 1) * chunkSize);
 
-            AudioChunk chunk = new AudioChunk();
-            chunk.setData(Base64.getEncoder().encodeToString(slice));
-            api.uploadChunk(session.getSessionId(), sequence, chunk);
+            AudioChunk audioChunk = new AudioChunk();
+            audioChunk.setData(Base64.getEncoder().encodeToString(slice));
+            audioSessionApi.uploadChunk(sessionId, sequence, audioChunk);
         }
 
-        HashMap<String, Integer> intervalMargin = new HashMap<>();
-        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(true, 1, intervalMargin, 0.5f);
+        HashMap<String, Integer> tagsIM = new HashMap<>();
+        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, 0, HOPE_SIZE, tagsIM);
 
-        //Get result
-        String token = null;
-        while (true) {
-            SessionStatus result = api.readStatus(session.getSessionId(), null, null, token);
-            token = Objects.requireNonNull(result.getInference().getPage()).getNextToken();
-            if (token == null) {
-                break;
+        if (USE_RESULT_ABBREVIATION) {
+            System.out.println("<Result Summary>");
+        }
+
+        // get results
+        String nextToken = null;
+
+        boolean endOfFile = false;
+        while (!endOfFile) {
+            SessionStatus sessionStatus = audioSessionApi.readStatus(sessionRefs.getSessionId(), null, null, nextToken);
+            nextToken = Objects.requireNonNull(sessionStatus.getInference().getPage()).getNextToken();
+            if (nextToken == null) {
+                endOfFile = true;
             }
 
-            for (SenseEvent event : Objects.requireNonNull(result.getInference().getResults())) {
-                if (useResultAbbreviation) {
-                    System.out.println(resultAbbreviation.abbreviation(event));
-                } else {
-                    System.out.println(event.toString());
+            if (USE_RESULT_ABBREVIATION) {
+                System.out.println(resultAbbreviation.minimizeDetails(sessionStatus.getInference().getResults(), endOfFile));
+            } else {
+                for (SenseEvent senseEvent : Objects.requireNonNull(sessionStatus.getInference().getResults())) {
+                    System.out.println(senseEvent.toString());
                 }
             }
         }
+
+        audioSessionApi.deleteSession(sessionId);
     }
 
     static class Recorder extends JFrame {
@@ -171,33 +186,11 @@ public class UploadFile {
                     targetDataLine.open(audioFormat);
                     targetDataLine.start();
 
-                    AudioSystem.write(new AudioInputStream(targetDataLine), audioFileFormatType, new File(recordedFilename));
+                    AudioSystem.write(new AudioInputStream(targetDataLine), audioFileFormatType, new File(RECORDED_FILE_PATH));
                 } catch (Exception e) {
                     System.out.println(e);
                 }
             }
-        }
-    }
-
-    static class PairOfDoubles {
-        private double first;
-        private double second;
-
-        PairOfDoubles(double first, double second) {
-            this.first = first;
-            this.second = second;
-        }
-
-        public double getFirst() {
-            return first;
-        }
-
-        public double getSecond() {
-            return second;
-        }
-
-        public void setSecond(double second) {
-            this.second = second;
         }
     }
 }

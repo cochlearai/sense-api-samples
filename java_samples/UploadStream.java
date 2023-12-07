@@ -18,10 +18,6 @@
 
 package ai.cochlear.example;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
@@ -34,19 +30,29 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Objects;
 
-import ai.cochl.client.ApiException;
-import ai.cochl.sense.api.AudioSessionApi;
-import ai.cochl.sense.model.*;
 import ai.cochl.client.ApiClient;
+import ai.cochl.client.ApiException;
 import ai.cochl.client.Configuration;
 import ai.cochl.client.auth.ApiKeyAuth;
+import ai.cochl.sense.api.AudioSessionApi;
+import ai.cochl.sense.model.AudioChunk;
+import ai.cochl.sense.model.AudioType;
+import ai.cochl.sense.model.CreateSession;
+import ai.cochl.sense.model.SenseEvent;
+import ai.cochl.sense.model.SessionRefs;
+import ai.cochl.sense.model.SessionStatus;
 
 public class MainActivity extends AppCompatActivity {
-    static String key = "YOUR_API_PROJECT_KEY";
+    static String API_KEY = "YOUR_API_PROJECT_KEY";
+    static boolean running = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,27 +68,24 @@ public class MainActivity extends AppCompatActivity {
         button1.setOnClickListener(v -> {
             textview1.setText(R.string.recording_for_10_seconds);
             button1.setEnabled(false);
+            running = true;
 
-            Thread thread1 = new Thread(() -> {
+            Thread thread = new Thread(() -> {
                 Inference inference = new Inference();
                 Thread inferenceThread = new Thread(inference);
                 inferenceThread.start();
-
                 try {
                     inferenceThread.join();
-
                     runOnUiThread(() -> {
                         button1.setEnabled(true);
                         textview1.setText(R.string.stopped);
                     });
                 } catch (InterruptedException e) {
-                    System.out.println(e);
+                    e.printStackTrace();
                 }
             });
-
-            thread1.start();
+            thread.start();
         });
-
         askRecordAudioPermission();
     }
 
@@ -110,47 +113,58 @@ public class MainActivity extends AppCompatActivity {
         }
 
         public void inference() throws ApiException {
-            ApiClient cli = Configuration.getDefaultApiClient();
-            ApiKeyAuth API_Key = (ApiKeyAuth) cli.getAuthentication("API_Key");
-            API_Key.setApiKey(key);
+            ApiClient apiClient = Configuration.getDefaultApiClient();
+            ApiKeyAuth apiKeyAuth = (ApiKeyAuth) apiClient.getAuthentication("API_Key");
+            apiKeyAuth.setApiKey(API_KEY);
 
-            AudioSessionApi api = new AudioSessionApi(cli);
+            AudioSessionApi audioSessionApi = new AudioSessionApi(apiClient);
 
-            CreateSession create = new CreateSession();
-            create.setContentType("audio/x-raw; rate=22050; format=s32");
-            create.setType(AudioType.STREAM);
-            SessionRefs session = api.createSession(create);
+            CreateSession createSession = new CreateSession();
+            createSession.setContentType("audio/x-raw; rate=22050; format=f32");
+            createSession.setType(AudioType.STREAM);
+
+            SessionRefs sessionRefs = audioSessionApi.createSession(createSession);
 
             // upload data from microphone in other thread
-            Uploader uploader = new Uploader(api, session.getSessionId());
+            Uploader uploader = new Uploader(audioSessionApi, sessionRefs.getSessionId());
             Thread uploaderThread = new Thread(uploader);
             uploaderThread.start();
 
             // Get result
             String token = null;
+            int nFrame = 19;  // for 10 seconds;
+            while (running) {
+                SessionStatus sessionStatus = audioSessionApi.readStatus(sessionRefs.getSessionId(), null, null, token);
 
-            int i = 25;
-            while (--i > 0) {
-                SessionStatus result = api.readStatus(session.getSessionId(), null, null, token);
-
-                token = Objects.requireNonNull(result.getInference().getPage()).getNextToken();
+                token = Objects.requireNonNull(sessionStatus.getInference().getPage()).getNextToken();
                 if (token == null) {
                     break;
                 }
 
-                for (SenseEvent event : Objects.requireNonNull(result.getInference().getResults())) {
-                    System.out.println(event.toString());
+                for (SenseEvent senseEvent : Objects.requireNonNull(sessionStatus.getInference().getResults())) {
+                    System.out.println(senseEvent.toString());
+
+                    if (--nFrame == 0) {
+                        running = false;
+                        break;
+                    }
                 }
+            }
+
+            try {
+                uploaderThread.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
 
     static class Uploader implements Runnable {
-        final private AudioSessionApi api;
+        final private AudioSessionApi audioSessionApi;
         final private String sessionId;
 
         Uploader(AudioSessionApi api, String id) {
-            this.api = api;
+            this.audioSessionApi = api;
             this.sessionId = id;
         }
 
@@ -162,38 +176,38 @@ public class MainActivity extends AppCompatActivity {
             int rate = 22050;
 
             @SuppressLint("MissingPermission")
-            AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT,
+            AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.UNPROCESSED,
                     rate,
                     channel,
                     format,
                     AudioRecord.getMinBufferSize(rate, channel, format)
             );
-            recorder.startRecording();
 
-            // record for 10 seconds
             float[] samples = new float[rate / 2];
-            byte[] bytes = new byte[rate * bitsSample / 2];
-            int sequence = 0;
-            int totalRecorded = 0;
-            while (totalRecorded < 10 * rate * bitsSample) {
+
+            recorder.startRecording();
+            for (int i = 0; running; ++i) {
                 recorder.read(samples, 0, samples.length, AudioRecord.READ_BLOCKING);
 
-                AudioChunk chunk = new AudioChunk();
+                byte[] bytes = new byte[samples.length * bitsSample];
                 ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().put(samples);
-                chunk.setData(Base64.encodeToString(bytes, Base64.DEFAULT));
 
-                totalRecorded += bytes.length;
+                AudioChunk audioChunk = new AudioChunk();
+                audioChunk.setData(Base64.encodeToString(bytes, Base64.DEFAULT));
+
                 try {
-                    api.uploadChunk(sessionId, sequence, chunk);
+                    audioSessionApi.uploadChunk(sessionId, i, audioChunk);
                 } catch (ApiException e) {
                     System.out.println(e.getResponseBody());
                     break;
                 }
-                sequence++;
             }
 
+            recorder.stop();
+            recorder.release();
+
             try {
-                api.deleteSession(sessionId);
+                audioSessionApi.deleteSession(sessionId);
             } catch (ApiException e) {
                 System.out.println(e.getResponseBody());
             }

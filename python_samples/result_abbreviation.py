@@ -2,8 +2,8 @@ import sys
 
 from cochl_sense_api.model.window_hop import WindowHop
 
-if sys.version_info.minor == 8:  # python3.8
-    from typing import Dict as dict
+if sys.version_info.minor >= 8:  # python3.8 or higher
+    from typing import Dict
 
 
 class ResultAbbreviation:
@@ -12,7 +12,7 @@ class ResultAbbreviation:
         enabled=True,
         default_im=0,
         hop_size=WindowHop("0.5s"),
-        tags_im: dict[str, int] = None,
+        tags_im: Dict[str, int] = None,
     ):
         self.enabled = enabled
         if hop_size != WindowHop("0.5s") and hop_size != WindowHop("1s"):
@@ -29,10 +29,13 @@ class ResultAbbreviation:
         if default_im == 0 and self.hop_size == 0.5:
             self._min_im = -0.5
 
-    def minimize_details(self, results=[], file_ended=False):
+    def minimize_details(self, results=None, file_ended=False):
         """
         Used for file inference to loop over the results and provide a single result summary
         """
+        if results is None:
+            results = []
+
         if not self.enabled:
             return "Result Abbreviation is currently disabled"
 
@@ -46,7 +49,7 @@ class ResultAbbreviation:
             output = self._append_line(output, line)
 
         if file_ended is True:
-            to_time = results[-1]["end_time"]
+            _to_time = results[-1]["end_time"]
             for tag, (_, from_time, to_time) in self._buffer.items():
                 line = f"At {from_time}-{to_time}s, {tag} was detected"
                 output = self._append_line(output, line)
@@ -101,14 +104,15 @@ class ResultAbbreviation:
         return output
 
     def clear_buffer(self):
-        self._buffer.clear
+        self._buffer.clear()
 
     def _im(self, tag):
         if self.tags_im is None:
             return self.default_im
         return self.tags_im.get(tag, self.default_im)
 
-    def _append_line(self, result, line):
+    @classmethod
+    def _append_line(cls, result, line):
         if not result:
             return line
         return f"{result}\n{line}"

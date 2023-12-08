@@ -51,7 +51,7 @@ class ResultAbbreviation:
         if file_ended is True:
             _to_time = results[-1]["end_time"]
             for tag, (_, from_time, to_time) in self._buffer.items():
-                line = f"At {from_time}-{to_time}s, {tag} was detected"
+                line = f"At {from_time}-{to_time}s, [{tag}] was detected"
                 output = self._append_line(output, line)
 
         self._file_mode = False
@@ -91,7 +91,7 @@ class ResultAbbreviation:
 
             im -= self.hop_size
             if im < self._min_im:
-                line = f"At {from_time}-{to_time}s, {tag} was detected"
+                line = f"At {from_time}-{to_time}s, [{tag}] was detected"
                 nb_line += 1
                 output = self._append_line(output, line)
                 tags_to_remove.append(tag)

@@ -8,7 +8,7 @@ function formatTimeDisplay(time) {
 
 function displayBufferedResults(resultsBuffered) {
     resultDisplay = resultsBuffered.map(tag => {
-        return `At ${formatTimeDisplay(tag.start_time)}-${formatTimeDisplay(tag.end_time)}s, ${tag.tag_name} was detected`
+        return `At ${formatTimeDisplay(tag.start_time)}-${formatTimeDisplay(tag.end_time)}s, [${tag.tag_name}] was detected`
     }).join("\n")
     return resultDisplay
 }

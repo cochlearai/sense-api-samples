@@ -22,6 +22,7 @@ public class UploadFile {
     static WindowHop HOPE_SIZE = WindowHop._0_5S;
     static int DEFAULT_SENSITIVITY = 0;
     static boolean USE_RESULT_ABBREVIATION = true;
+    static int DEFAULT_INTERVAL_MARGIN = 1;
 
     // example 01: upload existing file
     static String EXISTING_FILE_PATH = "siren.wav";
@@ -53,11 +54,14 @@ public class UploadFile {
         ApiKeyAuth apiKeyAuth = (ApiKeyAuth) apiClient.getAuthentication("API_Key");
         apiKeyAuth.setApiKey(API_KEY);
 
+        HashMap<String, Integer> tagsSensitivity = new HashMap<>();
+        // tagsSensitivity.put("Male_speech", 1);
+
         AudioSessionApi audioSessionApi = new AudioSessionApi(apiClient);
 
         CreateSession createSession = new CreateSession();
         createSession.setDefaultSensitivity(DEFAULT_SENSITIVITY);
-        createSession.setTagsSensitivity(new HashMap<>());
+        createSession.setTagsSensitivity(tagsSensitivity);
         createSession.setWindowHop(HOPE_SIZE);
         createSession.setContentType(contentType);
         createSession.setType(AudioType.FILE);
@@ -78,7 +82,9 @@ public class UploadFile {
         }
 
         HashMap<String, Integer> tagsIM = new HashMap<>();
-        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, 0, HOPE_SIZE, tagsIM);
+        // tagsIM.put("Male_speech", 1);
+
+        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, DEFAULT_INTERVAL_MARGIN, HOPE_SIZE, tagsIM);
 
         if (USE_RESULT_ABBREVIATION) {
             System.out.println("<Result Summary>");

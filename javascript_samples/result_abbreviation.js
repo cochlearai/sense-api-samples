@@ -24,7 +24,7 @@ function processBufferedTags(inferenceMode, hopSize, result, resultsBuffered) {
             }
             else {
                 resultsBuffered[ridx].end_time = result.end_time
-                resultsBuffered[ridx].im = DEFAULT_IM
+                resultsBuffered[ridx].im = TAGS_IM[resultsBuffered[ridx].tag_name] ?? DEFAULT_IM
             }
             if (resultsBuffered[ridx].im < minimumIM) {
                 tagsIMEnded.push({ id: ridx, ...resultsBuffered[ridx] })

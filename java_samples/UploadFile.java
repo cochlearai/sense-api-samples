@@ -51,11 +51,13 @@ public class UploadFile {
         byte[] fileBytes = Files.readAllBytes(Paths.get(EXISTING_FILE_PATH));
 
         ApiClient apiClient = Configuration.getDefaultApiClient();
+        apiClient.setBasePath("https://api.beta.cochl.ai/sense/api/v1");
         ApiKeyAuth apiKeyAuth = (ApiKeyAuth) apiClient.getAuthentication("API_Key");
         apiKeyAuth.setApiKey(API_KEY);
 
-        HashMap<String, Integer> tagsSensitivity = new HashMap<>();
-        // tagsSensitivity.put("Male_speech", 1);
+        LinkedHashMap<String, Integer> tagsSensitivity = new LinkedHashMap<>();
+//        tagsSensitivity.put("Crowd", 2);
+//        tagsSensitivity.put("Sing", 1);
 
         AudioSessionApi audioSessionApi = new AudioSessionApi(apiClient);
 
@@ -81,7 +83,7 @@ public class UploadFile {
             audioSessionApi.uploadChunk(sessionId, sequence, audioChunk);
         }
 
-        HashMap<String, Integer> tagsIM = new HashMap<>();
+        LinkedHashMap<String, Integer> tagsIM = new LinkedHashMap<>();
         // tagsIM.put("Male_speech", 1);
 
         ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, DEFAULT_INTERVAL_MARGIN, HOPE_SIZE, tagsIM);

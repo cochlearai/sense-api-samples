@@ -37,7 +37,7 @@ class ResultAbbreviation {
     private final int defaultIntervalMargin;
     private final HashMap<String, Integer> tagsIM;
 
-    private final TreeMap<String, BufferValue> buffer;
+    private final LinkedHashMap<String, BufferValue> buffer;
     private double minimumAcceptableMargin;
 
     private final StringBuilder stringBuilder1 = new StringBuilder();
@@ -56,7 +56,7 @@ class ResultAbbreviation {
         }
 
         this.tagsIM = tagsIM;
-        this.buffer = new TreeMap<>();
+        this.buffer = new LinkedHashMap<>();
 
         this.minimumAcceptableMargin = 0;
         if (this.defaultIntervalMargin == 0 && this.hopSize == 0.5d) {

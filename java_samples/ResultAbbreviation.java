@@ -35,7 +35,7 @@ class ResultAbbreviation {
     private final boolean enabled;
     private final float hopSize;
     private final int defaultIntervalMargin;
-    private final HashMap<String, Integer> tagsIM;
+    private final LinkedHashMap<String, Integer> tagsIM;
 
     private final LinkedHashMap<String, BufferValue> buffer;
     private double minimumAcceptableMargin;
@@ -43,7 +43,7 @@ class ResultAbbreviation {
     private final StringBuilder stringBuilder1 = new StringBuilder();
     private final StringBuilder stringBuilder2 = new StringBuilder();
 
-    public ResultAbbreviation(boolean enabled, int defaultIntervalMargin, WindowHop windowHop, HashMap<String, Integer> tagsIM) {
+    public ResultAbbreviation(boolean enabled, int defaultIntervalMargin, WindowHop windowHop, LinkedHashMap<String, Integer> tagsIM) {
         this.enabled = enabled;
         this.defaultIntervalMargin = defaultIntervalMargin;
 

@@ -20,18 +20,33 @@ import javax.swing.*;
 public class UploadFile {
     static String API_KEY = "YOUR_API_PROJECT_KEY";
     static WindowHop HOPE_SIZE = WindowHop._0_5S;
-    static int DEFAULT_SENSITIVITY = 0;
     static boolean USE_RESULT_ABBREVIATION = true;
+
+    static int DEFAULT_SENSITIVITY = 0;
+    static LinkedHashMap<String, Integer> TAGS_SENSITIVITY;
+
     static int DEFAULT_INTERVAL_MARGIN = 1;
+    static LinkedHashMap<String, Integer> TAGS_INTERVAL_MARGIN;
 
     // example 01: upload existing file
+    static String CONTENT_TYPE = "audio/wav";
     static String EXISTING_FILE_PATH = "siren.wav";
 
     // example 02: upload file recorded by java sound api (macOS / windows)
     static boolean USE_RECORDER = false;
     static String RECORDED_FILE_PATH = "recorded.wav";
 
+    private static void initTags() {
+        TAGS_SENSITIVITY = new LinkedHashMap<>();
+        TAGS_SENSITIVITY.put("Crowd", 2);
+        TAGS_SENSITIVITY.put("Sing", 1);
+
+        TAGS_INTERVAL_MARGIN = new LinkedHashMap<>();
+    }
+
     public static void main(String[] args) {
+        initTags();
+
         if (USE_RECORDER) {
             new Recorder();
             return;
@@ -47,25 +62,19 @@ public class UploadFile {
     }
 
     static void inference() throws ApiException, java.io.IOException {
-        String contentType = "audio/wav";
         byte[] fileBytes = Files.readAllBytes(Paths.get(EXISTING_FILE_PATH));
 
         ApiClient apiClient = Configuration.getDefaultApiClient();
-        apiClient.setBasePath("https://api.beta.cochl.ai/sense/api/v1");
         ApiKeyAuth apiKeyAuth = (ApiKeyAuth) apiClient.getAuthentication("API_Key");
         apiKeyAuth.setApiKey(API_KEY);
-
-        LinkedHashMap<String, Integer> tagsSensitivity = new LinkedHashMap<>();
-//        tagsSensitivity.put("Crowd", 2);
-//        tagsSensitivity.put("Sing", 1);
 
         AudioSessionApi audioSessionApi = new AudioSessionApi(apiClient);
 
         CreateSession createSession = new CreateSession();
         createSession.setDefaultSensitivity(DEFAULT_SENSITIVITY);
-        createSession.setTagsSensitivity(tagsSensitivity);
+        createSession.setTagsSensitivity(TAGS_SENSITIVITY);
         createSession.setWindowHop(HOPE_SIZE);
-        createSession.setContentType(contentType);
+        createSession.setContentType(CONTENT_TYPE);
         createSession.setType(AudioType.FILE);
         createSession.setTotalSize(fileBytes.length);
 
@@ -83,10 +92,7 @@ public class UploadFile {
             audioSessionApi.uploadChunk(sessionId, sequence, audioChunk);
         }
 
-        LinkedHashMap<String, Integer> tagsIM = new LinkedHashMap<>();
-        // tagsIM.put("Male_speech", 1);
-
-        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, DEFAULT_INTERVAL_MARGIN, HOPE_SIZE, tagsIM);
+        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, DEFAULT_INTERVAL_MARGIN, HOPE_SIZE, TAGS_INTERVAL_MARGIN);
 
         if (USE_RESULT_ABBREVIATION) {
             System.out.println("<Result Summary>");

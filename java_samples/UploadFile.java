@@ -25,8 +25,8 @@ public class UploadFile {
     static int DEFAULT_SENSITIVITY = 0;
     static LinkedHashMap<String, Integer> TAGS_SENSITIVITY;
 
-    static int DEFAULT_INTERVAL_MARGIN = 1;
-    static LinkedHashMap<String, Integer> TAGS_INTERVAL_MARGIN;
+    static int DEFAULT_IM = 1;
+    static LinkedHashMap<String, Integer> TAGS_IM;
 
     // example 01: upload existing file
     static String CONTENT_TYPE = "audio/wav";
@@ -41,7 +41,7 @@ public class UploadFile {
         TAGS_SENSITIVITY.put("Crowd", 2);
         TAGS_SENSITIVITY.put("Sing", 1);
 
-        TAGS_INTERVAL_MARGIN = new LinkedHashMap<>();
+        TAGS_IM = new LinkedHashMap<>();
     }
 
     public static void main(String[] args) {
@@ -92,7 +92,7 @@ public class UploadFile {
             audioSessionApi.uploadChunk(sessionId, sequence, audioChunk);
         }
 
-        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, DEFAULT_INTERVAL_MARGIN, HOPE_SIZE, TAGS_INTERVAL_MARGIN);
+        ResultAbbreviation resultAbbreviation = new ResultAbbreviation(USE_RESULT_ABBREVIATION, DEFAULT_IM, HOPE_SIZE, TAGS_IM);
 
         if (USE_RESULT_ABBREVIATION) {
             System.out.println("<Result Summary>");

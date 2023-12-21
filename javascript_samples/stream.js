@@ -98,6 +98,7 @@ async function main() {
         upload(id),
         results(id)
     ])
+    session.deleteSession(id)
 }
 
 main().catch(err => {

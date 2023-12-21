@@ -84,6 +84,7 @@ async function main() {
     const id = await init()
     await upload(id)
     await results(id)
+    session.deleteSession(id)
 }
 
 main().catch(err => {

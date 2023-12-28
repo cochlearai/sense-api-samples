@@ -6,7 +6,7 @@ const mic = require('mic');
 
 // Audio Session Params
 const API_KEY = "YOUR_API_PROJECT_KEY"
-const HOP_SIZE = 0.5                            // default; or "1s"
+const HOP_SIZE = 0.5                            // default; or 1 for "1s"
 const DEFAULT_SENSITIVITY = 0                   // default; or in [-2,2]
 const TAGS_SENSITIVITY = { Crowd:1, Sing: 2 }   // example; will alter the results
 

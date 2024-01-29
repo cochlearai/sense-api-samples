@@ -50,7 +50,11 @@ async function upload(id) {
         buffer = Buffer.concat([buffer, chunk]);
         if (buffer.length >= size) {
             const toUpload = buffer.slice(0, size);
-            buffer = buffer.slice(size);
+            if (HOP_SIZE == 0.5) {
+                buffer = buffer.slice(size/2);
+            } else {
+                buffer = buffer.slice(size);
+            }
             await session.uploadChunk(id, seq++, {
                 data: Buffer.from(toUpload).toString('base64'),
             });

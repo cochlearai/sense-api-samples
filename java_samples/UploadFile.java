@@ -55,9 +55,9 @@ public class UploadFile {
         try {
             inference();
         } catch (ApiException e) {
-            System.err.println(e.getResponseBody());
+            System.out.println(e.getResponseBody());
         } catch (Exception e) {
-            System.err.println(e);
+            System.out.println(e);
         }
     }
 
@@ -65,6 +65,7 @@ public class UploadFile {
         byte[] fileBytes = Files.readAllBytes(Paths.get(EXISTING_FILE_PATH));
 
         ApiClient apiClient = Configuration.getDefaultApiClient();
+        apiClient.setBasePath("https://api.beta.cochl.ai/sense/api/v1");
         ApiKeyAuth apiKeyAuth = (ApiKeyAuth) apiClient.getAuthentication("API_Key");
         apiKeyAuth.setApiKey(API_KEY);
 
@@ -189,7 +190,7 @@ public class UploadFile {
 
                 new ThreadRecording().start();
             } catch (Exception e) {
-                System.err.println(e);
+                System.out.println(e);
                 System.exit(0);
             }
         }

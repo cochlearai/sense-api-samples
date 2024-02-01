@@ -114,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
 
         public void inference() throws ApiException {
             ApiClient apiClient = Configuration.getDefaultApiClient();
+            apiClient.setBasePath("https://api.beta.cochl.ai/sense/api/v1");
             ApiKeyAuth apiKeyAuth = (ApiKeyAuth) apiClient.getAuthentication("API_Key");
             apiKeyAuth.setApiKey(API_KEY);
 
@@ -184,23 +185,33 @@ public class MainActivity extends AppCompatActivity {
             );
 
             float[] samples = new float[rate / 2];
+            float[] previousSamples = null;
 
             recorder.startRecording();
             for (int i = 0; running; ++i) {
                 recorder.read(samples, 0, samples.length, AudioRecord.READ_BLOCKING);
 
-                byte[] bytes = new byte[samples.length * bitsSample];
-                ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().put(samples);
+                if (previousSamples == null) {
+                    // first read
+                    previousSamples = new float[samples.length];
+                    System.arraycopy(samples, 0, previousSamples, 0, samples.length);
+                    continue;
+                }
+
+                byte[] bytes = new byte[(previousSamples.length * bitsSample) + (samples.length * bitsSample)];
+                ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().put(previousSamples).put(samples);
 
                 AudioChunk audioChunk = new AudioChunk();
                 audioChunk.setData(Base64.encodeToString(bytes, Base64.DEFAULT));
 
                 try {
-                    audioSessionApi.uploadChunk(sessionId, i, audioChunk);
+                    audioSessionApi.uploadChunk(sessionId, i - 1, audioChunk);
                 } catch (ApiException e) {
                     System.out.println(e.getResponseBody());
                     break;
                 }
+
+                System.arraycopy(samples, 0, previousSamples, 0, samples.length);
             }
 
             recorder.stop();

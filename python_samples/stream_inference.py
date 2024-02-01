@@ -17,8 +17,9 @@ from result_abbreviation import ResultAbbreviation
 
 ###############################################################################
 # Audio Session Params
-PROJECT_KEY = "YOUR_API_PROJECT_KEY"
-REQUEST_TIMEOUT = 10  # seconds
+PROJECT_KEY = "PROJECT_KEY"
+REQUEST_TIMEOUT = 60  # seconds
+SAMPLE_RATE = 22050  # Hz
 HOP_SIZE = WindowHop("0.5s")  # default; or "1s"
 DEFAULT_SENSITIVITY = DefaultSensitivity(0)  # default; or in [-2,2]
 TAGS_SENSITIVITY = TagsSensitivity(Crowd=2, Sing=1)  # example; will alter the results
@@ -32,31 +33,44 @@ class PyAudioSense:
     def __init__(self, api: AudioSessionApi, session_id: str):
         self.api = api
         self.session_id = session_id
-
-        self.rate = 22050
-        chunk = int(self.rate / 2)
         self.buffer = queue.Queue()
+        self.stop_upload = False
+
+        if HOP_SIZE == WindowHop("0.5s"):
+            self.window_hop_samples = int(SAMPLE_RATE / 2)
+        elif HOP_SIZE == WindowHop("1s"):
+            self.window_hop_samples = SAMPLE_RATE
+        else:
+            raise ValueError(HOP_SIZE)
 
         self.audio_stream = PyAudio().open(
             format=paFloat32,
             channels=1,
-            rate=self.rate,
+            rate=SAMPLE_RATE,
             input=True,
-            frames_per_buffer=chunk,
+            frames_per_buffer=self.window_hop_samples,
             stream_callback=self._fill_buffer,
         )
-        self.stop_upload = False
 
     def _fill_buffer(self, in_data, _frame_count, _time_info, _status_flags):
         self.buffer.put(in_data)
         return None, paContinue
 
     def generator(self):
+        chunk = bytes()
         while not self.stop_upload:
             if self.buffer.empty():
                 continue
-            chunk = self.buffer.get()
-            yield chunk
+
+            samples = self.buffer.get()
+            chunk += samples  # concat bytes
+            bytes_per_sample = len(samples) // self.window_hop_samples
+            window_size_bytes = SAMPLE_RATE * bytes_per_sample
+            window_hop_bytes = self.window_hop_samples * bytes_per_sample
+
+            if len(chunk) >= window_size_bytes:
+                yield chunk
+                chunk = chunk[window_hop_bytes:]
 
     def upload(self):
         next_chunk_seq = 0
@@ -84,7 +98,7 @@ def main():
     session = api.create_session(
         CreateSession(
             window_hop=HOP_SIZE,
-            content_type="audio/x-raw; rate=22050; format=f32",
+            content_type=f"audio/x-raw; rate={SAMPLE_RATE}; format=f32",
             type=AudioType("stream"),
             default_sensitivity=DEFAULT_SENSITIVITY,
             tags_sensitivity=TAGS_SENSITIVITY,
